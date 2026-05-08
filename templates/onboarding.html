@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Onboarding | ForgeFit{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-3">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h2 class="h4 mb-2">Complete Your Profile</h2>
+        <p class="text-muted mb-4">These stats help ForgeFit agents deliver personalized outputs.</p>
+        <form method="post" class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Age</label>
+            <input type="number" min="1" name="age" class="form-control" value="{{ current_user.age or '' }}" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Height (cm)</label>
+            <input type="number" min="1" step="0.1" name="height_cm" class="form-control" value="{{ current_user.height_cm or '' }}" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Weight (kg)</label>
+            <input type="number" min="1" step="0.1" name="weight_kg" class="form-control" value="{{ current_user.weight_kg or '' }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Gender</label>
+            <select name="gender" class="form-select" required>
+              <option value="" disabled {% if not current_user.gender %}selected{% endif %}>Select gender</option>
+              <option value="Male" {% if current_user.gender == 'Male' %}selected{% endif %}>Male</option>
+              <option value="Female" {% if current_user.gender == 'Female' %}selected{% endif %}>Female</option>
+              <option value="Other" {% if current_user.gender == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Activity Level</label>
+            <select name="activity_level" class="form-select" required>
+              <option value="" disabled {% if not current_user.activity_level %}selected{% endif %}>Select activity level</option>
+              <option value="Sedentary" {% if current_user.activity_level == 'Sedentary' %}selected{% endif %}>Sedentary</option>
+              <option value="Lightly Active" {% if current_user.activity_level == 'Lightly Active' %}selected{% endif %}>Lightly Active</option>
+              <option value="Moderately Active" {% if current_user.activity_level == 'Moderately Active' %}selected{% endif %}>Moderately Active</option>
+              <option value="Very Active" {% if current_user.activity_level == 'Very Active' %}selected{% endif %}>Very Active</option>
+            </select>
+          </div>
+          <div class="col-12 d-grid">
+            <button class="btn btn-primary btn-lg" type="submit">Save and Continue</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Login | ForgeFit{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+  <div class="col-md-6 col-lg-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h2 class="h4 mb-3">Welcome Back</h2>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" name="username" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" name="password" required>
+          </div>
+          <button class="btn btn-primary w-100" type="submit">Login</button>
+        </form>
+        <p class="text-muted small mt-3 mb-0">New here? <a href="{{ url_for('register') }}">Create your account</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

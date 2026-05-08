@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | ForgeFit{% endblock %}
+
+{% block content %}
+<section class="mb-4">
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+      <h1 class="h3 mb-1">Hello, {{ current_user.username }}</h1>
+      <p class="text-muted mb-0">Your AI fitness cockpit is ready.</p>
+    </div>
+  </div>
+</section>
+
+<section class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Age</div>
+        <div class="h4 mb-0">{{ current_user.age }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Height</div>
+        <div class="h4 mb-0">{{ current_user.height_cm }} cm</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Weight</div>
+        <div class="h4 mb-0">{{ current_user.weight_kg }} kg</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Gender</div>
+        <div class="h5 mb-0">{{ current_user.gender }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Activity Level</div>
+        <div class="h5 mb-0">{{ current_user.activity_level }}</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="card border-0 shadow-sm">
+  <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h2 class="h5 mb-1">Ready for guidance?</h2>
+      <p class="text-muted mb-0">Start a live consultation with any ForgeFit agent.</p>
+    </div>
+    <a href="{{ url_for('chat') }}" class="btn btn-primary btn-lg">Start a Consultation</a>
+  </div>
+</section>
+
+<section class="card border-0 shadow-sm mt-4">
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h5 mb-0">Recent Chat History</h2>
+      <a href="{{ url_for('chat') }}" class="btn btn-sm btn-outline-primary">Open Chat</a>
+    </div>
+
+    {% if recent_messages %}
+      <div class="list-group" id="dashboardHistoryList">
+        {% for message in recent_messages %}
+          <div class="list-group-item bg-transparent border border-secondary-subtle mb-2 rounded history-item" data-message-id="{{ message.id }}">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="badge text-bg-primary">{{ agents[message.agent_id] }}</span>
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-warning favorite-btn" type="button" data-message-id="{{ message.id }}">☆</button>
+                <small class="text-muted">{{ message.timestamp.strftime('%d %b %Y, %I:%M %p') }}</small>
+              </div>
+            </div>
+            <div class="small text-muted">You: {{ message.user_message[:120] }}{% if message.user_message|length > 120 %}...{% endif %}</div>
+            <div class="mt-1">AI: {{ message.ai_response[:220] }}{% if message.ai_response|length > 220 %}...{% endif %}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">No chats yet. Start your first consultation and your history will appear here.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const key = "forgefit_favorites";
+    const list = document.getElementById("dashboardHistoryList");
+    if (!list) return;
+    const favorites = new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+
+    function renderFavorites() {
+      list.querySelectorAll(".history-item").forEach((item) => {
+        const id = item.dataset.messageId;
+        const btn = item.querySelector(".favorite-btn");
+        const fav = favorites.has(id);
+        btn.textContent = fav ? "★" : "☆";
+        item.dataset.favorite = fav ? "1" : "0";
+      });
+      const sorted = [...list.querySelectorAll(".history-item")].sort((a, b) => (b.dataset.favorite || "0").localeCompare(a.dataset.favorite || "0"));
+      sorted.forEach((el) => list.appendChild(el));
+    }
+
+    list.addEventListener("click", (e) => {
+      const btn = e.target.closest(".favorite-btn");
+      if (!btn) return;
+      const id = btn.dataset.messageId;
+      if (favorites.has(id)) favorites.delete(id); else favorites.add(id);
+      localStorage.setItem(key, JSON.stringify([...favorites]));
+      renderFavorites();
+    });
+
+    renderFavorites();
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block title %}Consultation | ForgeFit{% endblock %}
+
+{% block head_extra %}
+<style>
+  .chat-shell { min-height: 75vh; }
+  .agent-list .btn { text-align: left; }
+  .chat-window {
+    height: 58vh;
+    overflow-y: auto;
+    background: #0f172a;
+    border: 1px solid #26354a;
+    border-radius: 0.75rem;
+    padding: 1rem;
+  }
+  .msg { max-width: 85%; margin-bottom: 0.75rem; }
+  .msg-enter { animation: msgPop 0.25s ease; }
+  .msg-user { margin-left: auto; }
+  .msg-ai { margin-right: auto; }
+  .msg-bubble {
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  .msg-user .msg-bubble { background: #0d6efd; color: #fff; }
+  .msg-ai .msg-bubble { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; }
+  [data-theme="light"] .chat-window {
+    background: #f8fafc;
+    border-color: #dbe4f0;
+  }
+  [data-theme="light"] .msg-user .msg-bubble {
+    background: #c7d2fe;
+    color: #0f172a;
+    border: 1px solid #a5b4fc;
+  }
+  [data-theme="light"] .msg-ai .msg-bubble {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #dbe4f0;
+  }
+  .history-scroll {
+    max-height: 58vh;
+    overflow-y: auto;
+  }
+  .chat-card-header {
+    background: rgba(15, 23, 42, 0.85);
+    border-bottom: 1px solid #24364d !important;
+  }
+  [data-theme="light"] .chat-card-header {
+    background: #ffffff;
+    border-bottom: 1px solid #dbe4f0 !important;
+  }
+  .saved-only .history-item[data-favorite="0"] {
+    display: none;
+  }
+  @keyframes msgPop {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 chat-shell">
+  <div class="col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h6 text-uppercase text-muted mb-3">AI Agents</h2>
+        <div class="d-grid gap-2 agent-list">
+          {% for id, name in agents.items() %}
+            <button class="btn btn-outline-primary agent-btn {% if id == '0' %}active{% endif %}" data-agent-id="{{ id }}">
+              {{ name }}
+            </button>
+          {% endfor %}
+        </div>
+        <hr class="my-3">
+        <h3 class="h6 text-uppercase text-muted mb-2">Recent History</h3>
+        <div class="history-scroll pe-1" id="chatSidebarHistory">
+          {% if recent_messages %}
+            {% for message in recent_messages %}
+              <div class="p-2 mb-2 rounded border border-secondary-subtle history-item" data-message-id="{{ message.id }}" data-agent-id="{{ message.agent_id }}">
+                <div class="small fw-semibold d-flex justify-content-between align-items-center">
+                  <span>{{ agents[message.agent_id] }}</span>
+                  <div class="d-flex align-items-center gap-1">
+                    <button class="btn btn-sm btn-outline-warning favorite-btn py-0 px-2" type="button" data-message-id="{{ message.id }}">☆</button>
+                    <button class="btn btn-sm btn-outline-danger delete-history-btn py-0 px-2" type="button" data-message-id="{{ message.id }}" title="Delete chat">🗑</button>
+                  </div>
+                </div>
+                <div class="small text-muted">{{ message.user_message[:55] }}{% if message.user_message|length > 55 %}...{% endif %}</div>
+                <div class="small text-muted">{{ message.timestamp.strftime('%d %b, %I:%M %p') }}</div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="small text-muted mb-0">No saved chats yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-9">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header chat-card-header border-0 pt-3">
+        <h1 class="h5 mb-0">ForgeFit Consultation</h1>
+        <p class="text-muted small mb-0">Ask goals, workout questions, meals, or daily logs.</p>
+      </div>
+      <div class="card-body d-flex flex-column gap-3">
+        <div class="d-flex justify-content-end gap-2">
+          <button id="savedChatsBtn" type="button" class="btn btn-outline-warning btn-sm">View Saved Chats</button>
+          <button id="newChatBtn" type="button" class="btn btn-outline-secondary btn-sm">Start New Chat</button>
+        </div>
+        <div id="chatWindow" class="chat-window"></div>
+        <div id="typingIndicator" class="small text-muted d-none">AI is typing...</div>
+
+        <form id="chatForm" class="d-flex gap-2">
+          <input id="chatInput" autocomplete="on" class="form-control form-control-lg" placeholder="Type your message..." required>
+          <button id="sendBtn" class="btn btn-primary px-4" type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  const chatWindow = document.getElementById("chatWindow");
+  const chatForm = document.getElementById("chatForm");
+  const chatInput = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const savedChatsBtn = document.getElementById("savedChatsBtn");
+  const newChatBtn = document.getElementById("newChatBtn");
+  const typingIndicator = document.getElementById("typingIndicator");
+  const agentButtons = document.querySelectorAll(".agent-btn");
+
+  let currentAgentId = "0";
+  let savedOnlyMode = false;
+  marked.setOptions({ gfm: true, breaks: true });
+
+  function setLoading(isLoading) {
+    chatInput.disabled = isLoading;
+    sendBtn.disabled = isLoading;
+    typingIndicator.classList.toggle("d-none", !isLoading);
+  }
+
+  function scrollToBottom() {
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  function appendMessage(role, text, markdown = false) {
+    const wrapper = document.createElement("div");
+    wrapper.className = `msg msg-enter ${role === "user" ? "msg-user" : "msg-ai"}`;
+
+    const bubble = document.createElement("div");
+    bubble.className = "msg-bubble";
+    if (markdown) {
+      bubble.innerHTML = marked.parse(text || "");
+    } else {
+      bubble.textContent = text;
+    }
+    wrapper.appendChild(bubble);
+    chatWindow.appendChild(wrapper);
+    scrollToBottom();
+  }
+
+  async function loadHistory() {
+    chatWindow.innerHTML = "";
+    try {
+      const response = await fetch(`/api/chat/history?agent_id=${encodeURIComponent(currentAgentId)}`);
+      const data = await response.json();
+      if (!response.ok) {
+        appendMessage("ai", data.error || "Failed to load history.");
+        return;
+      }
+      if (!data.messages.length) {
+        appendMessage("ai", "No conversation yet. Start by asking your first question.");
+        return;
+      }
+      data.messages.forEach((message) => {
+        appendMessage("user", message.user_message);
+        appendMessage("ai", message.ai_response, true);
+      });
+    } catch (error) {
+      appendMessage("ai", "Could not load chat history.");
+    }
+  }
+
+  agentButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      agentButtons.forEach((item) => item.classList.remove("active"));
+      btn.classList.add("active");
+      currentAgentId = btn.dataset.agentId;
+      loadHistory();
+    });
+  });
+
+  (function setupFavorites() {
+    const key = "forgefit_favorites";
+    const container = document.getElementById("chatSidebarHistory");
+    if (!container) return;
+    const favorites = new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+
+    function renderFavorites() {
+      container.querySelectorAll(".history-item").forEach((item) => {
+        const id = item.dataset.messageId;
+        const btn = item.querySelector(".favorite-btn");
+        const fav = favorites.has(id);
+        if (btn) btn.textContent = fav ? "★" : "☆";
+        item.dataset.favorite = fav ? "1" : "0";
+      });
+      const sorted = [...container.querySelectorAll(".history-item")].sort((a, b) => (b.dataset.favorite || "0").localeCompare(a.dataset.favorite || "0"));
+      sorted.forEach((el) => container.appendChild(el));
+      if (savedOnlyMode) container.classList.add("saved-only"); else container.classList.remove("saved-only");
+    }
+
+    container.addEventListener("click", (event) => {
+      const favoriteBtn = event.target.closest(".favorite-btn");
+      const deleteBtn = event.target.closest(".delete-history-btn");
+      if (favoriteBtn) {
+        const id = favoriteBtn.dataset.messageId;
+        if (favorites.has(id)) favorites.delete(id); else favorites.add(id);
+        localStorage.setItem(key, JSON.stringify([...favorites]));
+        renderFavorites();
+        return;
+      }
+      if (!deleteBtn) return;
+      const id = deleteBtn.dataset.messageId;
+      if (!id) return;
+      if (!confirm("Delete this chat item from history?")) return;
+      fetch(`/api/chat/history/${encodeURIComponent(id)}`, { method: "DELETE" })
+        .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok) throw new Error(data.error || "Failed to delete chat.");
+          const card = container.querySelector(`.history-item[data-message-id="${id}"]`);
+          if (card) card.remove();
+          favorites.delete(id);
+          localStorage.setItem(key, JSON.stringify([...favorites]));
+          loadHistory();
+        })
+        .catch((error) => appendMessage("ai", error.message));
+    });
+
+    renderFavorites();
+  })();
+
+  savedChatsBtn.addEventListener("click", () => {
+    const container = document.getElementById("chatSidebarHistory");
+    if (!container) return;
+    savedOnlyMode = !savedOnlyMode;
+    container.classList.toggle("saved-only", savedOnlyMode);
+    savedChatsBtn.textContent = savedOnlyMode ? "Show All Chats" : "View Saved Chats";
+  });
+
+  chatForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = chatInput.value.trim();
+    if (!message) return;
+
+    appendMessage("user", message);
+    chatInput.value = "";
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent_id: currentAgentId, message })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        appendMessage("ai", data.error || "Request failed.");
+      } else {
+        appendMessage("ai", data.response || "No response received.", true);
+      }
+    } catch (error) {
+      appendMessage("ai", "Network error while contacting the AI workflow.");
+    } finally {
+      setLoading(false);
+      chatInput.focus();
+    }
+  });
+
+  newChatBtn.addEventListener("click", async () => {
+    if (!confirm("Start a new chat for this agent? This will clear the current agent history.")) return;
+    try {
+      const response = await fetch("/api/chat/history/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent_id: currentAgentId })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        appendMessage("ai", data.error || "Could not reset chat.");
+        return;
+      }
+      chatWindow.innerHTML = "";
+      appendMessage("ai", "New chat started. How can I help you today?");
+      const sidebar = document.getElementById("chatSidebarHistory");
+      if (sidebar) {
+        [...sidebar.querySelectorAll(".history-item")]
+          .filter((el) => el.dataset.agentId === currentAgentId)
+          .forEach((el) => el.remove());
+      }
+    } catch (error) {
+      appendMessage("ai", "Network error while starting a new chat.");
+    }
+  });
+
+  loadHistory();
+</script>
+{% endblock %}

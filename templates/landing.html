@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}ForgeFit | AI Fitness Ecosystem{% endblock %}
+
+{% block content %}
+<section class="py-5 text-center">
+  <div class="row justify-content-center">
+    <div class="col-lg-9">
+      <h1 class="display-5 fw-bold mb-3">Your AI Coaching Team for Fitness and Nutrition</h1>
+      <p class="lead text-muted mb-4">
+        ForgeFit combines specialized AI agents for macros, workouts, recipes, accountability, and weekly optimization.
+      </p>
+      <div class="d-flex justify-content-center gap-2">
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Get Started Free</a>
+        <a href="{{ url_for('login') }}" class="btn btn-outline-dark btn-lg">Login</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="row g-4 pb-4">
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h5>Macro Analyzer</h5>
+        <p class="text-muted mb-0">Get TDEE-based calorie and macro guidance grounded in your profile.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h5>Workout Architect</h5>
+        <p class="text-muted mb-0">Build structured PPL plans matched to available training days.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h5>Recipe Recommender</h5>
+        <p class="text-muted mb-0">Generate practical, high-protein Indian meals from your ingredients.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h5>Daily Accountability Coach</h5>
+        <p class="text-muted mb-0">Track calories and protein from natural language daily updates.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h5>Weekly Success Manager</h5>
+        <p class="text-muted mb-0">Review consistency trends and get focused weekly improvements.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 border-0 shadow-sm">
+      <div class="card-body">
+        <h5>Persistent Personalization</h5>
+        <p class="text-muted mb-0">Save profile stats and conversation history for context-aware coaching.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
