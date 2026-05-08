@@ -19,6 +19,20 @@ ForgeFit is a Flask-based fitness and nutrition app with user authentication, on
 - Chat history management (favorite/star, delete single item, reset agent chat)
 - Light/Dark theme toggle with persistence
 
+## Project Screenshots
+
+### Landing Page
+
+![Landing Page](docs/screenshots/landing-page.png)
+
+### Dashboard
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Chat Interface
+
+![Chat Interface](docs/screenshots/chat-interface.png)
+
 ## Project Structure
 
 - `app.py` - Flask routes, auth flow, API endpoints, webhook integration
